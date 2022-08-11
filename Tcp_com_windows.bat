@@ -1,0 +1,1 @@
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /out:Tcp_com.exe /win32icon:Tcp_com.ico /target:exe *.cs

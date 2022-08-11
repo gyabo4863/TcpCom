@@ -1,0 +1,1 @@
+mcs /out:Tcp_com_linux.exe /win32icon:Tcp_com.ico /target:exe *.cs
