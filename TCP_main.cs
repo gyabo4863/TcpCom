@@ -91,7 +91,7 @@ namespace TCP_communication
     class TcpHelp {
         public static void programHelp()
         {
-            int inWord;
+            string inWord;
             Console.WriteLine("プログラム引数ヘルプ");
             Console.WriteLine("/H:");
             Console.WriteLine("　　プログラムヘルプ一覧を表示する。");
@@ -105,19 +105,19 @@ namespace TCP_communication
             Console.WriteLine("　　自分の名前を設定する。");
             Console.WriteLine("　　漢字も可。");
             Console.WriteLine("Input anything Key/n");
-            inWord = Console.Read();
+            inWord = Console.ReadLine();
         }
 
         public static void controlHelp()
         {
-            int inWord;
+            string inWord;
             Console.WriteLine("入力制御ヘルプ");
             Console.WriteLine("#H");
             Console.WriteLine("　　入力制御ヘルプを表示する。");
             Console.WriteLine("#END");
             Console.WriteLine("　　通信プログラムを終了する。");
             Console.WriteLine("Input anything Key/n");
-            inWord = Console.Read();
+            inWord = Console.ReadLine();
         }
 
         public static void inpHelpCheck(string inpWord)
@@ -267,13 +267,18 @@ namespace TCP_communication
             
         }
 
-        public static void tcpPGHelp(string param)
+        public static bool tcpPGHelp(string param)
         {
+            bool rc = false;
+
             if(param.StartsWith("/H") || param.StartsWith("/h"))
             {
                 TcpHelp.programHelp();
                 TcpHelp.controlHelp();
+                rc = true;
             }
+
+            return(rc);
         }
 
          public static void tcpTimeout(string param)
@@ -285,14 +290,18 @@ namespace TCP_communication
 
         }
 
-        public static void user(string param)
+        public static bool user(string param)
         {
+            bool rc = false;
             //USERクラスの生成
             // 先頭の文字列と一致するかどうかを判断         
             if(param.StartsWith("/USER:"))
             {
-           	  gVariables.setUSER(getValue(param));
+           	    gVariables.setUSER(getValue(param));
+                rc = true;
 		    }
+
+            return(rc);
         }
     }
 
@@ -356,14 +365,22 @@ namespace TCP_communication
 
         public static void Main(string[] argv)
         {
+            bool endPg = false;
+            bool inpUser = false;
+            bool UserCheck = false;
+
             //引数の取得設定
         	foreach(string stri in argv)
         	{
                 NewBaseType.init(stri);
-                NewBaseType.tcpPGHelp(stri);
-                NewBaseType.user(stri);
+                endPg = NewBaseType.tcpPGHelp(stri);
+                if(endPg == true) break;
+                inpUser = NewBaseType.user(stri);
+                if(inpUser == true) UserCheck = true;
                 NewBaseType.tcpTimeout(stri);
             }
+
+            if(endPg == true || UserCheck == false) return;
             //ホスト名からIPアドレスを取得する時は、次のようにする
             //string host = "localhost";
             //System.Net.IPAddress ipAdd =
