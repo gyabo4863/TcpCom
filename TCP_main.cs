@@ -88,6 +88,47 @@ namespace TCP_communication
         }
     }
 
+    class TcpHelp {
+        public static void programHelp()
+        {
+            int inWord;
+            Console.WriteLine("プログラム引数ヘルプ");
+            Console.WriteLine("/H:");
+            Console.WriteLine("　　プログラムヘルプ一覧を表示する。");
+            Console.WriteLine("/FIRST:整数");
+            Console.WriteLine("　　Listenerhへの接続タイムアウトms。");
+            Console.WriteLine("　　クライアントの場合3600000をセットするのがおするめ。");
+            Console.WriteLine("/TOUT:整数");
+            Console.WriteLine("　　送受信タイムアウトms。");
+            Console.WriteLine("　　600000がデフォルト。");
+            Console.WriteLine("//USER:名前");
+            Console.WriteLine("　　自分の名前を設定する。");
+            Console.WriteLine("　　漢字も可。");
+            Console.WriteLine("Input anything Key/n");
+            inWord = Console.Read();
+        }
+
+        public static void controlHelp()
+        {
+            int inWord;
+            Console.WriteLine("入力制御ヘルプ");
+            Console.WriteLine("#H");
+            Console.WriteLine("　　入力制御ヘルプを表示する。");
+            Console.WriteLine("#END");
+            Console.WriteLine("　　通信プログラムを終了する。");
+            Console.WriteLine("Input anything Key/n");
+            inWord = Console.Read();
+        }
+
+        public static void inpHelpCheck(string inpWord)
+        {
+            if(inpWord.StartsWith("#H") || inpWord.StartsWith("#h"))
+            {
+                controlHelp();
+            }
+        }
+    }
+
     class gVariables {
  
         private static string strUSER = ""; //外部から参照できる文字列
@@ -115,6 +156,8 @@ namespace TCP_communication
         private static int ListenerTimeOut = 1000;
         private static int sendTimeOut = 300000;
         private static int receTimeOut = 300000;
+
+        private static int portNo = 2001;
         private static string StartServer = "#SERVER=ON";
         private static string ExitPg = "#END";
         private static string errWord = "#Err";
@@ -134,6 +177,11 @@ namespace TCP_communication
         public static string getAdress()
         {
             return(strAdress);
+        }
+
+        public static int getPortNo()
+        {
+            return(portNo);
         }
 
         public static void setConAdress()
@@ -217,6 +265,15 @@ namespace TCP_communication
            	    gVariables.setListenerTimeOut(getValue(param));
 		    }
             
+        }
+
+        public static void tcpPGHelp(string param)
+        {
+            if(param.StartsWith("/H") || param.StartsWith("/h"))
+            {
+                TcpHelp.programHelp();
+                TcpHelp.controlHelp();
+            }
         }
 
          public static void tcpTimeout(string param)
@@ -303,6 +360,7 @@ namespace TCP_communication
         	foreach(string stri in argv)
         	{
                 NewBaseType.init(stri);
+                NewBaseType.tcpPGHelp(stri);
                 NewBaseType.user(stri);
                 NewBaseType.tcpTimeout(stri);
             }
@@ -313,7 +371,7 @@ namespace TCP_communication
             gVariables.setConAdress();
 
             //Listenするポート番号
-            int port = 2001;
+            int port = gVariables.getPortNo();
             Task<string> sendMsg;
             string sendWord = "";
             string sendText = "";
@@ -327,6 +385,9 @@ namespace TCP_communication
 
                 sendWord = iniWord;
 
+                //ヘルプコマンドチェック
+                TcpHelp.inpHelpCheck(iniWord);
+                
                 //終了コマンドチェック
                 if (string.Compare(sendWord, gVariables.getPgEnd()) == 0 )
                 {
@@ -435,8 +496,11 @@ namespace TCP_communication
                         //sendText = sendText.TrimEnd('\n');
                         //sendMsg = sendText;
 
+                        //ヘルプコマンドチェック
+                        TcpHelp.inpHelpCheck(sendText);
+                
                         //終了コマンドチェック
-                        if (string.Compare(sendWord, gVariables.getPgEnd()) == 0 )
+                        if (string.Compare(sendText, gVariables.getPgEnd()) == 0 )
                         {
                             Console.WriteLine("$ " + "---TCP 通信終了---\n");
 
