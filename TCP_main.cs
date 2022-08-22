@@ -114,6 +114,8 @@ namespace TCP_communication
             Console.WriteLine("入力制御ヘルプ");
             Console.WriteLine("#H");
             Console.WriteLine("　　入力制御ヘルプを表示する。");
+            Console.WriteLine("#SERVER=ON");
+            Console.WriteLine("　　サーバ側制御にする。");
             Console.WriteLine("#END");
             Console.WriteLine("　　通信プログラムを終了する。");
             Console.WriteLine("Input anything Key/n");
@@ -158,6 +160,8 @@ namespace TCP_communication
         private static int receTimeOut = 300000;
 
         private static int portNo = 2001;
+
+        private static bool serverFlg = false;
         private static string StartServer = "#SERVER=ON";
         private static string ExitPg = "#END";
         private static string errWord = "#Err";
@@ -220,6 +224,16 @@ namespace TCP_communication
             return(receTimeOut);
         }
 
+        public static void setServerFlg()
+        {
+            serverFlg = true;
+        }
+
+        public static bool getServerFlg()
+        {
+            return(serverFlg);
+        }
+
         public static string getServerStart()
         {
             return(StartServer);
@@ -229,6 +243,7 @@ namespace TCP_communication
         {
             return(ExitPg);
         }
+
         public static string getErrWord()
         {
             return(errWord);
@@ -419,7 +434,9 @@ namespace TCP_communication
                 {
                     //サーバ処理にする
                     sendText = gVariables.getServerStart();
+                    gVariables.setServerFlg();
                     break;
+
                 } else {
                     //USER名を追加
                     sendWord = gVariables.getUSER() + " " + sendWord;
@@ -471,7 +488,7 @@ namespace TCP_communication
                         ns.ReadTimeout = gVariables.getSendTimeOut();
                         ns.WriteTimeout = gVariables.getReceTimeOut();
 
-                        //サーバから送られたデータを受信する
+                        //クライアントから送られたデータを受信する
                         System.Text.Encoding enc = System.Text.Encoding.UTF8;
                         bool disconnected = false;
                         System.IO.MemoryStream ms = new System.IO.MemoryStream();
@@ -524,7 +541,7 @@ namespace TCP_communication
                             //閉じる
                             ns.Close();
                             client.Close();
-                            Console.WriteLine("$ " + "サーバとの接続を閉じました。");
+                            Console.WriteLine("$ " + "クライアントとの接続を閉じました。");
                             break;
                         }
 
@@ -543,6 +560,9 @@ namespace TCP_communication
                             Console.WriteLine(sendText);
                         }
 
+                        //サーバ処理中断？
+                        if(gVariables.getServerFlg() == false) break;
+
                     }
 
                     //リスナを閉じる
@@ -558,7 +578,7 @@ namespace TCP_communication
 
             //リスナを閉じる
             //slistener.Stop();
-            Console.WriteLine("$ " + "Listenerを閉じました。");
+            Console.WriteLine("> " + "Tcp_comを閉じました。");
 
             Console.ReadLine();
             return;
