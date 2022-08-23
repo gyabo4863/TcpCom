@@ -162,8 +162,10 @@ namespace TCP_communication
             return(strUSER);
         }
 
-        private static string strAdress = "192.168.0.0/16"; //外部から参照できる文字列
-        private static System.Net.IPAddress ipAdd = System.Net.IPAddress.Parse("192.168.1.1");
+        private static System.Net.IPAddress strAdress = 
+            System.Net.IPAddress.Parse("192.168.1.1");
+        private static System.Net.IPAddress ipAdd = 
+            System.Net.IPAddress.Parse("192.168.1.1");
         private static int ListenerTimeOut = 1000;
         private static int sendTimeOut = 300000;
         private static int receTimeOut = 300000;
@@ -180,14 +182,14 @@ namespace TCP_communication
         /// <param name="strAdress"></param>
         public static void setLisAdress(string iniAdress)
         {
-            strAdress = iniAdress;
+            strAdress = System.Net.IPAddress.Parse(iniAdress);
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="getAdress"></param>
-        public static string getLisAdress()
+        public static System.Net.IPAddress getLisAdress()
         {
             return(strAdress);
         }
@@ -209,7 +211,7 @@ namespace TCP_communication
 
         public static void setConAdress()
         {
-            System.Net.IPAddress.Parse(IPProgram.IpGet('4'));
+            ipAdd = System.Net.IPAddress.Parse(IPProgram.IpGet('4'));
         }
 
         public static System.Net.IPAddress getConAdress()
@@ -372,7 +374,9 @@ namespace TCP_communication
 
                     //タイムアウトの時間を設定
                     var timeout = gVariables.getListenerTimeOut(); 
-                    var task = tcpclient.ConnectAsync(gVariables.getConAdress(), port);
+                    var task = 
+                        tcpclient.ConnectAsync(gVariables.getConAdress(),
+                         gVariables.getPortNo());
                     
                     if (!task.Wait(timeout))  //ここで画面がフリーズしてしまう。
                     {
@@ -438,16 +442,15 @@ namespace TCP_communication
             //    System.Net.Dns.GetHostEntry(hostは[0];
             gVariables.setConAdress();
 
-            //Listenするポート番号
-            int port = gVariables.getPortNo();
             Task<string> sendMsg;
             string sendWord = "";
             string sendText = "";
-            //bool disconnected = false;
 
             //クライアント側の送信
             while(true)
             {
+                //System.Text.Encoding enc = System.Text.Encoding.UTF8;
+
                 Console.Write("> ");
                 string iniWord = Console.ReadLine();
 
@@ -461,7 +464,7 @@ namespace TCP_communication
                 TcpHelp.inpHelpCheck(sendWord);
                 
                 //終了コマンドチェック
-                if (string.Compare(sendWord, gVariables.getPgEnd()) == 0 )
+                if (sendWord.StartsWith(gVariables.getPgEnd()))
                 {
                     Console.WriteLine("> " + "---TCP 通信終了---\n");
 
@@ -489,12 +492,13 @@ namespace TCP_communication
                     sendWord = gVariables.getUSER() + " " + sendWord;
 
                     //文字列をByte型配列に変換
-                    //byte[] sendBytes = enc.GetBytes(sendMsg + '\n');
+                    //byte[] sendBytes = enc.GetBytes(sendWord + '\n');
 
-                    sendMsg = Client.StartClient(port, sendWord);
-                    if (string.Compare(sendMsg.ToString(), gVariables.getErrWord())  == 0)
+                    sendMsg = Client.StartClient(gVariables.getPortNo(), sendWord);
+                    if (sendMsg.ToString().StartsWith(gVariables.getErrWord()))
                     {
                         Console.WriteLine("> " + "--Send Err--");
+                        gVariables.setProgFlg(false);
                         break;
                     }
 
@@ -510,7 +514,8 @@ namespace TCP_communication
 
                     //TcpListenerオブジェクトを作成する
                     System.Net.Sockets.TcpListener listener =
-                        new System.Net.Sockets.TcpListener(System.Net.IPAddress.Parse(gVariables.getLisAdress()), port);
+                        new System.Net.Sockets.TcpListener(gVariables.getConAdress(),
+                         gVariables.getPortNo());
 
                     //Listenを開始する
                     listener.Start();
