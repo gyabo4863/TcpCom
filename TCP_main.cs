@@ -91,35 +91,40 @@ namespace TCP_communication
     class TcpHelp {
         public static void programHelp()
         {
-            string inWord;
             Console.WriteLine("プログラム引数ヘルプ");
             Console.WriteLine("/H:");
             Console.WriteLine("　　プログラムヘルプ一覧を表示する。");
+            Console.WriteLine("　　先頭文字がH or hで始まっていれば全てヘルプ。");
+            Console.WriteLine("　　例：/help or /Help。");
+            Console.WriteLine("　　プログラムヘルプはヘルプ表示後終了します。");
             Console.WriteLine("/FIRST:整数");
             Console.WriteLine("　　Listenerhへの接続タイムアウトms。");
-            Console.WriteLine("　　クライアントの場合3600000をセットするのがおするめ。");
+            Console.WriteLine("　　クライアントの場合3600000をセットするのがおすすめ。");
             Console.WriteLine("/TOUT:整数");
             Console.WriteLine("　　送受信タイムアウトms。");
             Console.WriteLine("　　600000がデフォルト。");
-            Console.WriteLine("//USER:名前");
+            Console.WriteLine("/USER:名前");
             Console.WriteLine("　　自分の名前を設定する。");
-            Console.WriteLine("　　漢字も可。");
+            Console.WriteLine("　　２バイトコード使用も可。コード体系はUTF-8使用。");
+            Console.WriteLine("　　この引数は必須項目です。無いと終了します。");
             Console.WriteLine("Input anything Key/n");
-            inWord = Console.ReadLine();
+            Console.ReadLine();
         }
 
         public static void controlHelp()
         {
-            string inWord;
             Console.WriteLine("入力制御ヘルプ");
             Console.WriteLine("#H");
             Console.WriteLine("　　入力制御ヘルプを表示する。");
+            Console.WriteLine("　　先頭文字がH or hで始まっていれば全てヘルプ。");
+            Console.WriteLine("　　例：#help or #Help。");
             Console.WriteLine("#SERVER=ON");
             Console.WriteLine("　　サーバ側制御にする。");
+            Console.WriteLine("　　同一TCP帯で１台必ずサーバを立てること。");
             Console.WriteLine("#END");
             Console.WriteLine("　　通信プログラムを終了する。");
             Console.WriteLine("Input anything Key/n");
-            inWord = Console.ReadLine();
+            Console.ReadLine();
         }
 
         public static void inpHelpCheck(string inpWord)
@@ -438,6 +443,12 @@ namespace TCP_communication
                     break;
 
                 } else {
+                    //送信が制御モードの場合入力に戻す
+                    if (string.Compare(sendWord,"#") == 0 )
+                    {
+                        continue;
+                    }
+
                     //USER名を追加
                     sendWord = gVariables.getUSER() + " " + sendWord;
 
