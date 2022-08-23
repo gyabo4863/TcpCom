@@ -470,11 +470,12 @@ namespace TCP_communication
                     break;
                 }
 
-                if (string.Compare(sendWord, gVariables.getServerStart()) == 0 )
+                if (sendWord.StartsWith(gVariables.getServerStart()))
                 {
                     //サーバ処理にする
                     sendText = gVariables.getServerStart();
                     gVariables.setServerFlg();
+                    Console.WriteLine("> サーバに移行します。");
                     break;
 
                 } else {
@@ -502,9 +503,9 @@ namespace TCP_communication
             }
  
             //サーバ側送信
-            if (string.Compare(sendText,gVariables.getServerStart()) == 0 )
+            if (sendText.StartsWith(gVariables.getServerStart()))
             {
-                if (string.Compare(sendWord.ToString(), gVariables.getErrWord())  != 0)
+                if (!sendWord.ToString().StartsWith(gVariables.getErrWord()))
                 {
 
                     //TcpListenerオブジェクトを作成する
@@ -585,7 +586,7 @@ namespace TCP_communication
                         TcpHelp.inpHelpCheck(sendText);
                 
                         //終了コマンドチェック
-                        if (string.Compare(sendText, gVariables.getPgEnd()) == 0 )
+                        if (sendText.StartsWith(gVariables.getPgEnd()))
                         {
                             Console.WriteLine("$ " + "---TCP 通信終了---\n");
 
