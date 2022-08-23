@@ -84,6 +84,7 @@ namespace TCP_communication
             }   
 
             Console.WriteLine("Command ERR " + ip_param);
+            gVariables.setProgFlg(false);
             return("192.168.1.0");
         }
     }
@@ -100,6 +101,9 @@ namespace TCP_communication
             Console.WriteLine("/FIRST:整数");
             Console.WriteLine("　　Listenerhへの接続タイムアウトms。");
             Console.WriteLine("　　クライアントの場合3600000をセットするのがおすすめ。");
+            Console.WriteLine("/IP:IPアドレス/サブマスク");
+            Console.WriteLine("　　Listenerの扱うIP帯を定義する。");
+            Console.WriteLine("　　デフォルト192.168.0.0/16にしています。");
             Console.WriteLine("/TOUT:整数");
             Console.WriteLine("　　送受信タイムアウトms。");
             Console.WriteLine("　　600000がデフォルト。");
@@ -158,14 +162,14 @@ namespace TCP_communication
             return(strUSER);
         }
 
-        private static string strAdress = ""; //外部から参照できる文字列
+        private static string strAdress = "192.168.0.0/16"; //外部から参照できる文字列
         private static System.Net.IPAddress ipAdd = System.Net.IPAddress.Parse("192.168.1.1");
         private static int ListenerTimeOut = 1000;
         private static int sendTimeOut = 300000;
         private static int receTimeOut = 300000;
 
         private static int portNo = 2001;
-
+        private static bool progFlg = true;
         private static bool serverFlg = false;
         private static string StartServer = "#SERVER=ON";
         private static string ExitPg = "#END";
@@ -174,7 +178,7 @@ namespace TCP_communication
         /// 
         /// </summary>
         /// <param name="strAdress"></param>
-        public static void setAdress(string iniAdress)
+        public static void setLisAdress(string iniAdress)
         {
             strAdress = iniAdress;
         }
@@ -183,9 +187,19 @@ namespace TCP_communication
         /// 
         /// </summary>
         /// <param name="getAdress"></param>
-        public static string getAdress()
+        public static string getLisAdress()
         {
             return(strAdress);
+        }
+
+        public static void setProgFlg(bool n)
+        {
+            progFlg = n;
+        }
+
+        public static bool getProgFlg()
+        {
+            return(progFlg);
         }
 
         public static int getPortNo()
@@ -263,6 +277,7 @@ namespace TCP_communication
     	  	if (param.IndexOf(":") == -1)
     	  	{
     	  	  	Console.WriteLine("引数の文字列に:がありません。");
+                gVariables.setProgFlg(false);
     	  	  	return(gVariables.getErrWord());
     	  	}
     	  	  
@@ -285,6 +300,19 @@ namespace TCP_communication
            	    gVariables.setListenerTimeOut(getValue(param));
 		    }
             
+        }
+
+        public static bool ListenerIpAdrress(string param)
+        {
+            bool rc = false;
+
+            if(param.StartsWith("/IP:"))
+            {
+                gVariables.setLisAdress(getValue(param));
+                rc = true;
+            }
+
+            return(rc);
         }
 
         public static bool tcpPGHelp(string param)
@@ -348,6 +376,7 @@ namespace TCP_communication
                     
                     if (!task.Wait(timeout))  //ここで画面がフリーズしてしまう。
                     {
+                        gVariables.setProgFlg(false);
                         //タイムアウトの例外
                         throw new SocketException(10060);
 
@@ -395,12 +424,14 @@ namespace TCP_communication
                 NewBaseType.init(stri);
                 endPg = NewBaseType.tcpPGHelp(stri);
                 if(endPg == true) break;
+                NewBaseType.ListenerIpAdrress(stri);
                 inpUser = NewBaseType.user(stri);
                 if(inpUser == true) UserCheck = true;
                 NewBaseType.tcpTimeout(stri);
             }
 
             if(endPg == true || UserCheck == false) return;
+            if(gVariables.getProgFlg() == false) return;
             //ホスト名からIPアドレスを取得する時は、次のようにする
             //string host = "localhost";
             //System.Net.IPAddress ipAdd =
@@ -421,9 +452,13 @@ namespace TCP_communication
                 string iniWord = Console.ReadLine();
 
                 sendWord = iniWord;
+                if(!sendWord.EndsWith("\n"))
+                {
+                    sendWord += "\n";
+                }
 
                 //ヘルプコマンドチェック
-                TcpHelp.inpHelpCheck(iniWord);
+                TcpHelp.inpHelpCheck(sendWord);
                 
                 //終了コマンドチェック
                 if (string.Compare(sendWord, gVariables.getPgEnd()) == 0 )
@@ -444,7 +479,7 @@ namespace TCP_communication
 
                 } else {
                     //送信が制御モードの場合入力に戻す
-                    if (string.Compare(sendWord,"#") == 0 )
+                    if (sendWord.StartsWith("#") || sendWord.StartsWith("\n"))
                     {
                         continue;
                     }
@@ -474,16 +509,16 @@ namespace TCP_communication
 
                     //TcpListenerオブジェクトを作成する
                     System.Net.Sockets.TcpListener listener =
-                        new System.Net.Sockets.TcpListener(gVariables.getConAdress(), port);
+                        new System.Net.Sockets.TcpListener(System.Net.IPAddress.Parse(gVariables.getLisAdress()), port);
+
+                    //Listenを開始する
+                    listener.Start();
+                    Console.WriteLine("Listenを開始しました({0}:{1})。",
+                        ((System.Net.IPEndPoint)listener.LocalEndpoint).Address,
+                        ((System.Net.IPEndPoint)listener.LocalEndpoint).Port);
 
                     while(true)
                     {
-                        //Listenを開始する
-                        listener.Start();
-                        Console.WriteLine("Listenを開始しました({0}:{1})。",
-                            ((System.Net.IPEndPoint)listener.LocalEndpoint).Address,
-                            ((System.Net.IPEndPoint)listener.LocalEndpoint).Port);
-
                         //接続要求があったら受け入れる
                         System.Net.Sockets.TcpClient client = listener.AcceptTcpClient();
                         Console.WriteLine("クライアント({0}:{1})と接続しました。",
@@ -540,6 +575,11 @@ namespace TCP_communication
                         //末尾の\nを削除
                         //sendText = sendText.TrimEnd('\n');
                         //sendMsg = sendText;
+                        if(!sendText.EndsWith("\n"))
+                        {
+                            sendText += "\n";
+                        }
+
 
                         //ヘルプコマンドチェック
                         TcpHelp.inpHelpCheck(sendText);
@@ -558,6 +598,12 @@ namespace TCP_communication
 
                         if (!disconnected)
                         {
+                            //送信が制御モードの場合入力に戻す
+                            if (sendText.StartsWith("#") || sendText.StartsWith("\n"))
+                            {
+                                continue;
+                            }
+
                             //クライアントにデータを送信する
 
                             //USER名を追加
