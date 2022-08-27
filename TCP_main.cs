@@ -156,6 +156,9 @@ namespace TCP_communication
             if(inpWord.StartsWith("#H") || inpWord.StartsWith("#h"))
             {
                 controlHelp();
+                gVariables.addinpCount();
+            } else {
+                gVariables.clerinpCount();
             }
         }
     }
@@ -169,24 +172,28 @@ namespace TCP_communication
             string inpWord = "";
             var outChar = "-";
             int  tcont = timeout / 1000;
-            //1秒毎に入力確認する。
-            for (var i = 0; i < tcont; i++)
+            if(gVariables.getinpCount() == 0 )
             {
-                Console.Write(outChar);
-                //キー入力チェック。E又はＩが入力されたら待ち受け終了。
-                if(Console.KeyAvailable){
-                    outChar = Console.ReadKey().Key.ToString();
-                    if(outChar.StartsWith(stopKey.ToUpper()) || 
-                        outChar.StartsWith(stopKey.ToLower()))
-                    {
-                        okinput = true;
-                        break;
+                //1秒毎に入力確認する。
+                for (var i = 0; i < tcont; i++)
+                {
+                    Console.Write(outChar);
+                    //キー入力チェック。E又はＩが入力されたら待ち受け終了。
+                    if(Console.KeyAvailable){
+                        outChar = Console.ReadKey().Key.ToString();
+                        if(outChar.ToUpper().StartsWith(stopKey))
+                        {
+                            okinput = true;
+                            break;
+                        }
                     }
+                    //1秒のディレイ
+                    Task.Delay(1000);
                 }
-                //1秒のディレイ
-                Task.Delay(1000);
-            }
 
+            } else {
+                okinput = true;
+            }
             //timeout前に入力keyを受けたら入力状態にする。
             if (inWordFlg && okinput)
             {
@@ -224,6 +231,7 @@ namespace TCP_communication
             System.Net.IPAddress.Parse("192.168.1.1");
         private static System.Net.IPAddress ipAdd = 
             System.Net.IPAddress.Parse("192.168.1.1");
+        private static int inpCount = 0;
         private static int ListenerTimeOut = 1000;
         private static int sendTimeOut = 300000;
         private static int receTimeOut = 300000;
@@ -277,6 +285,33 @@ namespace TCP_communication
         public static int getPortNo()
         {
             return(portNo);
+        }
+
+        /// <summary>
+        /// 入力回数を取得する
+        /// </summary>
+        /// <param name="getinpCount"></param>
+        public static int getinpCount()
+        {
+            return(inpCount);
+        }
+
+        /// <summary>
+        /// 入力回数を加算する
+        /// </summary>
+        /// <param name="addtinpCount"></param>
+        public static void addinpCount()
+        {
+            inpCount++;
+        }
+
+        /// <summary>
+        /// 入力回数を0にする
+        /// </summary>
+        /// <param name="clerinpCount"></param>
+        public static void clerinpCount()
+        {
+            inpCount = 0;
         }
 
         /// <summary>
