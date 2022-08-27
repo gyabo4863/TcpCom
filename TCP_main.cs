@@ -176,7 +176,8 @@ namespace TCP_communication
                 //キー入力チェック。E又はＩが入力されたら待ち受け終了。
                 if(Console.KeyAvailable){
                     outChar = Console.ReadKey().Key.ToString();
-                    if(outChar == stopKey.ToUpper() || outChar == stopKey.ToLower())
+                    if(outChar.StartsWith(stopKey.ToUpper()) || 
+                        outChar.StartsWith(stopKey.ToLower()))
                     {
                         okinput = true;
                         break;
