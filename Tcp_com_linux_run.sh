@@ -1,1 +1,1 @@
-mono Tcp_com_linux.exe /USER:linux002
+mono Tcp_com_linux.exe /USER:linux002 /FIRST:600000

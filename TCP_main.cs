@@ -100,10 +100,11 @@ namespace TCP_communication
             Console.WriteLine("　　プログラムヘルプはヘルプ表示後終了します。");
             Console.WriteLine("/FIRST:整数");
             Console.WriteLine("　　Listenerhへの接続タイムアウトms。");
-            Console.WriteLine("　　クライアントの場合3600000をセットするのがおすすめ。");
-            Console.WriteLine("/IP:IPアドレス/サブマスク");
-            Console.WriteLine("　　Listenerの扱うIP帯を定義する。");
-            Console.WriteLine("　　デフォルト192.168.0.0/16にしています。");
+            Console.WriteLine("　　サーバが準備できるまでの時間を設定する。");
+            Console.WriteLine("　　クライアントの場合600000をセットするのがおすすめ。");
+            Console.WriteLine("/IP:IPアドレス");
+            Console.WriteLine("　　Listenerの扱うIPを定義する。");
+            Console.WriteLine("　　デフォルト192.168.1.1にしています。");
             Console.WriteLine("/TOUT:整数");
             Console.WriteLine("　　送受信タイムアウトms。");
             Console.WriteLine("　　600000がデフォルト。");
@@ -374,17 +375,11 @@ namespace TCP_communication
 
                     //タイムアウトの時間を設定
                     var timeout = gVariables.getListenerTimeOut(); 
-                    var task = 
-                        tcpclient.ConnectAsync(gVariables.getConAdress(),
-                         gVariables.getPortNo());
+                    //var task = 
+                    //    tcpclient.ConnectAsync(gVariables.getConAdress(),
+                    //     gVariables.getPortNo());
                     
-                    if (!task.Wait(timeout))  //ここで画面がフリーズしてしまう。
-                    {
-                        gVariables.setProgFlg(false);
-                        //タイムアウトの例外
-                        throw new SocketException(10060);
-
-                    } else
+                    await Task.Delay(timeout);
                     {
                         //接続後の処理を記述            // サーバーへ接続開始
                         Console.WriteLine("サーバーと通信確立");
