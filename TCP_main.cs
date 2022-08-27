@@ -1,3 +1,12 @@
+//=============================================//
+// Tcp_comのソース
+// Tcp_com /Hでコマンド引数使い方をチェックする
+// make N.Tanaka 2024/09/01リリース
+// Open souse形式
+// Gitのレポジトリにアップする場合
+//　　エラーはもちろん、ワーニングもない状態で
+//=============================================//
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +22,7 @@ using System.Net.Sockets;
 
 namespace TCP_communication
 {
+    //このクラスはぱくってきたのでノーコメント
     class IPProgram
     { 
         static IEnumerable<IPAddress> GetIPAddresses(bool excludeLocalHost = false, bool excludeIPv6 = false)
@@ -89,7 +99,9 @@ namespace TCP_communication
         }
     }
 
+    //ヘルプ表示クラス
     class TcpHelp {
+        //プログラム引数の説明
         public static void programHelp()
         {
             Console.WriteLine("プログラム引数ヘルプ");
@@ -116,6 +128,7 @@ namespace TCP_communication
             Console.ReadLine();
         }
 
+        //入力制御ヘルプ
         public static void controlHelp()
         {
             Console.WriteLine("入力制御ヘルプ");
@@ -126,12 +139,18 @@ namespace TCP_communication
             Console.WriteLine("#SERVER=ON");
             Console.WriteLine("　　サーバ側制御にする。");
             Console.WriteLine("　　同一TCP帯で１台必ずサーバを立てること。");
+            Console.WriteLine("E");
+            Console.WriteLine("　　サーバ接続待ち終了key。");
+            Console.WriteLine("I");
+            Console.WriteLine("　　入力許可モードに変更するkey。");
+            Console.WriteLine("　　受信timeoutまで入力可。");
             Console.WriteLine("#END");
             Console.WriteLine("　　通信プログラムを終了する。");
             Console.WriteLine("Input anything Key/n");
             Console.ReadLine();
         }
 
+        //入力制御のヘルプ表示
         public static void inpHelpCheck(string inpWord)
         {
             if(inpWord.StartsWith("#H") || inpWord.StartsWith("#h"))
@@ -141,12 +160,49 @@ namespace TCP_communication
         }
     }
 
+    //key入力制御クラス
+    class typkey{
+        //key入力制御関数
+        public static string typKeyWord(string stopKey, int timeout, bool inWordFlg)
+        {
+            bool okinput = false;
+            string inpWord = "";
+            var outChar = "-";
+            int  tcont = timeout / 1000;
+            //1秒毎に入力確認する。
+            for (var i = 0; i < tcont; i++)
+            {
+                Console.Write(outChar);
+                //キー入力チェック。E又はＩが入力されたら待ち受け終了。
+                if(Console.KeyAvailable){
+                    outChar = Console.ReadKey().Key.ToString();
+                    if(outChar == stopKey.ToUpper() || outChar == stopKey.ToLower())
+                    {
+                        okinput = true;
+                        break;
+                    }
+                }
+                //1秒のディレイ
+                Task.Delay(1000);
+            }
+
+            //timeout前に入力keyを受けたら入力状態にする。
+            if (inWordFlg && okinput)
+            {
+                inpWord = Console.ReadLine();
+            }
+                    
+            return(inpWord);
+        }
+    }
+
+    //基本的なグローバル変数クラス
     class gVariables {
  
-        private static string strUSER = ""; //外部から参照できる文字列
+        private static string strUSER = ""; //ユーザ情報
 
         /// <summary>
-        /// 
+        /// ユーザ情報を設定する
         /// </summary>
         /// <param name="strUSER"></param>
         public static void setUSER(string iniUSER)
@@ -155,7 +211,7 @@ namespace TCP_communication
         }
 
         /// <summary>
-        /// 
+        /// ユーザ情報を取得する
         /// </summary>
         /// <param name="getUSER"></param>
         public static string getUSER()
@@ -178,7 +234,7 @@ namespace TCP_communication
         private static string ExitPg = "#END";
         private static string errWord = "#Err";
         /// <summary>
-        /// 
+        /// Ｉｐアドレスを設定する
         /// </summary>
         /// <param name="strAdress"></param>
         public static void setLisAdress(string iniAdress)
@@ -187,7 +243,7 @@ namespace TCP_communication
         }
 
         /// <summary>
-        /// 
+        /// Ｉｐアドレスを取得する
         /// </summary>
         /// <param name="getAdress"></param>
         public static System.Net.IPAddress getLisAdress()
@@ -195,85 +251,147 @@ namespace TCP_communication
             return(strAdress);
         }
 
+        /// <summary>
+        /// ポート設定フラグ設定する<現在未使用>
+        /// </summary>
+        /// <param name="setProgFlg"></param>
         public static void setProgFlg(bool n)
         {
             progFlg = n;
         }
 
+        /// <summary>
+        /// ポート設定フラグを取得する＜現在未使用＞
+        /// </summary>
+        /// <param name="getProgFlg"></param>
         public static bool getProgFlg()
         {
             return(progFlg);
         }
 
+        /// <summary>
+        /// ポート番号を取得する
+        /// </summary>
+        /// <param name="getProgNo"></param>
         public static int getPortNo()
         {
             return(portNo);
         }
 
+        /// <summary>
+        /// LocalHostIPアドレスを設定する
+        /// </summary>
+        /// <param name="setConAdress"></param>
         public static void setConAdress()
         {
             ipAdd = System.Net.IPAddress.Parse(IPProgram.IpGet('4'));
         }
 
+        /// <summary>
+        /// LocalHostIPアドレスを取得する
+        /// </summary>
+        /// <param name="getConAdress"></param>
         public static System.Net.IPAddress getConAdress()
         {
             return(ipAdd);
         }
 
-        public static void setListenerTimeOut(string value)
+        /// <summary>
+        /// サーバ側のListener構築時間を設定する
+        /// </summary>
+        /// <param name="setListenerTimeOut"></param>
+       public static void setListenerTimeOut(string value)
         {
             ListenerTimeOut = Int32.Parse(value);
         }
 
+        /// <summary>
+        /// サーバ側のListener構築時間を取得する
+        /// </summary>
+        /// <param name="getListenerTimeOut"></param>
         public static int getListenerTimeOut()
         {
             return(ListenerTimeOut);
         }
 
+        /// <summary>
+        /// 送受信のTimeOutを設定する
+        /// </summary>
+        /// <param name="setTimeOut"></param>
         public static void setTimeOut(string value)
         {
             sendTimeOut = Int32.Parse(value);
             receTimeOut = Int32.Parse(value);
         }
 
+        /// <summary>
+        /// 送信のTimeOutを取得する
+        /// </summary>
+        /// <param name="getSendTimeOut"></param>
         public static int getSendTimeOut()
         {
             return(sendTimeOut);
         }
 
+        /// <summary>
+        /// 受信のTimeOutを取得する
+        /// </summary>
+        /// <param name="getReceTimeOut"></param>
         public static int getReceTimeOut()
         {
             return(receTimeOut);
         }
 
+        /// <summary>
+        /// サーバ側状態を設定する
+        /// </summary>
+        /// <param name="setServerFlg"></param>
         public static void setServerFlg()
         {
             serverFlg = true;
         }
 
+        /// <summary>
+        /// サーバ側状態を取得する
+        /// </summary>
+        /// <param name="getServerFlg"></param>
         public static bool getServerFlg()
         {
             return(serverFlg);
         }
 
+        /// <summary>
+        /// サーバ側開始を取得する
+        /// </summary>
+        /// <param name="getServerStart"></param>
         public static string getServerStart()
         {
             return(StartServer);
         }
 
+        /// <summary>
+        /// プログラム強制終了を取得する
+        /// </summary>
+        /// <param name="getPgEnd"></param>
         public static string getPgEnd()
         {
             return(ExitPg);
         }
 
+        /// <summary>
+        /// エラーを取得する
+        /// </summary>
+        /// <param name="getErrWord"></param>
         public static string getErrWord()
         {
             return(errWord);
         }
     }
 
+    //引数の意味合いを取得するクラス
     public class NewBaseType
     {
+        //区切り記号記号の文字を取得
     	public static string getValue(string param)
     	{
     	  	int len;
@@ -289,6 +407,7 @@ namespace TCP_communication
     	  	return(param.Substring(param.Length - len, len));
     	}
 
+        //”/FIRST:”の解析
         public static void init(string param)
         {
             // アイコンファイルのパス
@@ -305,6 +424,7 @@ namespace TCP_communication
             
         }
 
+        //”/IP:”の解析
         public static bool ListenerIpAdrress(string param)
         {
             bool rc = false;
@@ -318,6 +438,7 @@ namespace TCP_communication
             return(rc);
         }
 
+        //”/H”の解析
         public static bool tcpPGHelp(string param)
         {
             bool rc = false;
@@ -332,6 +453,7 @@ namespace TCP_communication
             return(rc);
         }
 
+        //”/TOUT:”の解析
          public static void tcpTimeout(string param)
         {
             if(param.StartsWith("/TOUT:"))
@@ -341,6 +463,7 @@ namespace TCP_communication
 
         }
 
+        //”/USER:”の解析
         public static bool user(string param)
         {
             bool rc = false;
@@ -356,8 +479,10 @@ namespace TCP_communication
         }
     }
 
+    //クライアントクラス
     public class Client : NewBaseType
     {
+        //クアイアント開始
         public static async Task<string> StartClient(int port, string request)
         {
             var buffer = new byte[1024];
@@ -378,8 +503,9 @@ namespace TCP_communication
                     //var task = 
                     //    tcpclient.ConnectAsync(gVariables.getConAdress(),
                     //     gVariables.getPortNo());
-                    
-                    await Task.Delay(timeout);
+
+                    Console.Write("サーバ立ち上げ待ち終了Type E");
+                    typkey.typKeyWord("E", timeout, false);
                     {
                         //接続後の処理を記述            // サーバーへ接続開始
                         Console.WriteLine("サーバーと通信確立");
@@ -408,9 +534,10 @@ namespace TCP_communication
         }   
     }
 
+    //サーバクラス
     public class Server : NewBaseType
     {
-
+        //メイン
         public static void Main(string[] argv)
         {
             bool endPg = false;
@@ -447,7 +574,7 @@ namespace TCP_communication
                 //System.Text.Encoding enc = System.Text.Encoding.UTF8;
 
                 Console.Write("> ");
-                string iniWord = Console.ReadLine();
+                string iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(), true);
 
                 sendWord = iniWord;
                 if(!sendWord.EndsWith("\n"))
@@ -468,6 +595,7 @@ namespace TCP_communication
                     break;
                 }
 
+                //サーバ開始か？
                 if (sendWord.StartsWith(gVariables.getServerStart()))
                 {
                     //サーバ処理にする
@@ -489,6 +617,7 @@ namespace TCP_communication
                     //文字列をByte型配列に変換
                     //byte[] sendBytes = enc.GetBytes(sendWord + '\n');
 
+                    //クライアントから送信
                     sendMsg = Client.StartClient(gVariables.getPortNo(), sendWord);
                     if (sendMsg.ToString().StartsWith(gVariables.getErrWord()))
                     {
@@ -504,6 +633,7 @@ namespace TCP_communication
             //サーバ側送信
             if (sendText.StartsWith(gVariables.getServerStart()))
             {
+                //送信データがエラーでない
                 if (!sendWord.ToString().StartsWith(gVariables.getErrWord()))
                 {
 
@@ -572,7 +702,7 @@ namespace TCP_communication
                         Console.Write("$ ");
 
                        //クライアントに送信する文字列を作成
-                        sendText = Console.ReadLine();
+                        sendText = typkey.typKeyWord("I", gVariables.getReceTimeOut(), true);
                         //末尾の\nを削除
                         //sendText = sendText.TrimEnd('\n');
                         //sendMsg = sendText;
@@ -597,6 +727,7 @@ namespace TCP_communication
                             break;
                         }
 
+                        //セッションが繋がっていたら
                         if (!disconnected)
                         {
                             //送信が制御モードの場合入力に戻す
