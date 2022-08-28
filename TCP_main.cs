@@ -172,7 +172,7 @@ namespace TCP_communication
             string inpWord = "";
             var outChar = "-";
             int  tcont = timeout / 1000;
-            if(gVariables.getinpCount() == 0 || inpWordFlg)
+            if(gVariables.getinpCount() == 0 && inpWordFlg)
             {
                 //1秒毎に入力確認する。
                 for (var i = 0; i < tcont; i++)
