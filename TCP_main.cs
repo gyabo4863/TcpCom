@@ -1,10 +1,19 @@
 //=============================================//
-// Tcp_comのソース
+// Tcp_com.exeのソース
+// このソフトはローカル環境のみで通信をやり取り
+// 現在確認済は、Windows11,Linux(lubuntu),
+//     Android(os9),iPad(iPad Aer4)
+// ファイヤーウォール、ルーティングは使用者責任
 // Tcp_com /Hでコマンド引数使い方をチェックする
-// make N.Tanaka 2024/09/01リリース
+//　*_run.bat,*_run.shは編集してお使い下さい
+// --------------------------------------------
+// make N.Tanaka 2024/09/10リリース
+// 端末１台に付き１ライセンス必要です
+// 販売サイト：https://diskcobo77.theshop.jp/
 // Open souse形式
-// Gitのレポジトリにアップする場合
-//　　エラーはもちろん、ワーニングもない状態で
+// Git: https://github.com/gyabo4863/TcpCom.git
+// 他言語で販売したい方は相談にのります。
+// mail: gyabo4863@gmail.com
 //=============================================//
 
 using System;
@@ -59,7 +68,6 @@ namespace TCP_communication
                     Console.WriteLine(x);
                     return(x.ToString());
                 }
-
             }
 
             if (ip_param == 'A')
@@ -70,7 +78,6 @@ namespace TCP_communication
                     Console.WriteLine(x);
                     return(x.ToString());
                 }
-
             }
 
             if (ip_param == '4')
@@ -85,17 +92,14 @@ namespace TCP_communication
                         if (Console.ReadLine() == "y")
                         {
                             return(x.ToString());
-
                         }
                     }
-
                 }
-
             }   
 
             Console.WriteLine("Command ERR " + ip_param);
             gVariables.setProgFlg(false);
-            return("192.168.1.0");
+            return("192.168.1.1");
         }
     }
 
@@ -165,29 +169,44 @@ namespace TCP_communication
 
     //key入力制御クラス
     class typkey{
+        //key入力時の表示制御
+        public static void dispKey(int tcont, int i, string stopKey)
+        {
+            Console.Write("{0}秒待ち",tcont - i);
+            Console.Write(" key=" + stopKey);
+
+            if (gVariables.getServerFlg())
+            {
+                Console.Write("\n$ ");
+            } else {
+                Console.Write("\n> ");
+            }
+        }
+
         //key入力制御関数
         public static string typKeyWord(string stopKey, int timeout, bool inWordFlg, bool inpWordFlg)
         {
             bool okinput = false;
+            bool skipFlg = true;
             string inpWord = "";
             var outChar = "-";
             int  tcont = timeout / 1000;
+
+            //入力初回と表示許可フラグがtrueの場合
             if(gVariables.getinpCount() == 0 && inpWordFlg)
             {
                 //1秒毎に入力確認する。
                 for (var i = 0; i < tcont; i++)
                 {
-                    //最初に待ち時間と入力keyを表示
-                    if(i%120 == 0) {
-                        Console.Write("{0}秒待ち",tcont - i);
-                        Console.Write(" key=" + stopKey);
-                        if (gVariables.getServerFlg())
-                        {
-                            Console.Write("\n$ ");
-                        } else {
-                            Console.Write("\n> ");
-                        }
+                    //最初と２分毎に待ち時間と入力keyを表示
+                    if( i % 120 == 0 && skipFlg) {
+                        if (i < 120) skipFlg = false;
+                        dispKey(tcont, i, stopKey);
+                    } else {
+                        if(i >= 120) skipFlg = true;
+                        dispKey(tcont, i, stopKey);
                     }
+
                     //キー入力チェック。E又はＩが入力されたら待ち受け終了。
                     if(Console.KeyAvailable){
                         outChar = Console.ReadKey().Key.ToString();
@@ -197,13 +216,16 @@ namespace TCP_communication
                             break;
                         }
                     }
+
                     //1秒のディレイ
                     Task.Delay(1000);
                 }
 
             } else {
+                //とりあえず、入力許可にする。
                 okinput = true;
             }
+
             //timeout前に入力keyを受けたら入力状態にする。
             if (inWordFlg && okinput)
             {
@@ -217,6 +239,7 @@ namespace TCP_communication
     //基本的なグローバル変数クラス
     class gVariables {
  
+        //ユーザの値は大切なので別格扱い
         private static string strUSER = ""; //ユーザ情報
 
         /// <summary>
@@ -237,6 +260,7 @@ namespace TCP_communication
             return(strUSER);
         }
 
+        //グローバル変数の保存場所
         private static System.Net.IPAddress strAdress = 
             System.Net.IPAddress.Parse("192.168.1.1");
         private static System.Net.IPAddress ipAdd = 
@@ -245,13 +269,15 @@ namespace TCP_communication
         private static int ListenerTimeOut = 1000;
         private static int sendTimeOut = 300000;
         private static int receTimeOut = 300000;
-
         private static int portNo = 2001;
         private static bool progFlg = true;
         private static bool serverFlg = false;
+
+        //本当はconstでよい値だがなんとなく編集可能にした。
         private static string StartServer = "#SERVER=ON";
         private static string ExitPg = "#END";
         private static string errWord = "#Err";
+
         /// <summary>
         /// Ｉｐアドレスを設定する
         /// </summary>
@@ -441,13 +467,16 @@ namespace TCP_communication
     	public static string getValue(string param)
     	{
     	  	int len;
+
+            //区切り記号がなかったら
     	  	if (param.IndexOf(":") == -1)
     	  	{
     	  	  	Console.WriteLine("引数の文字列に:がありません。");
                 gVariables.setProgFlg(false);
     	  	  	return(gVariables.getErrWord());
     	  	}
-    	  	  
+
+            //区切り記号位置取得  
     	  	len = param.Length - (param.IndexOf(":") + 1);
     	  	  
     	  	return(param.Substring(param.Length - len, len));
@@ -475,6 +504,7 @@ namespace TCP_communication
         {
             bool rc = false;
 
+            //IPアドレス？
             if(param.StartsWith("/IP:"))
             {
                 gVariables.setLisAdress(getValue(param));
@@ -489,6 +519,7 @@ namespace TCP_communication
         {
             bool rc = false;
 
+            //ヘルプのキーワード？
             if(param.StartsWith("/H") || param.StartsWith("/h"))
             {
                 TcpHelp.programHelp();
@@ -506,15 +537,13 @@ namespace TCP_communication
             {
            	  gVariables.setTimeOut(getValue(param));
 		    }
-
         }
 
         //”/USER:”の解析
         public static bool user(string param)
         {
             bool rc = false;
-            //USERクラスの生成
-            // 先頭の文字列と一致するかどうかを判断         
+            //USERクラスの生成        
             if(param.StartsWith("/USER:"))
             {
            	    gVariables.setUSER(getValue(param));
@@ -544,11 +573,8 @@ namespace TCP_communication
                     tcpclient.SendTimeout = gVariables.getSendTimeOut();
                     tcpclient.ReceiveTimeout = gVariables.getReceTimeOut();
 
-                    //タイムアウトの時間を設定
+                    //Listenerタイムアウトの時間を設定
                     var timeout = gVariables.getListenerTimeOut(); 
-                    //var task = 
-                    //    tcpclient.ConnectAsync(gVariables.getConAdress(),
-                    //     gVariables.getPortNo());
 
                     Console.Write("サーバ立ち上げ待ち終了Type E");
                     typkey.typKeyWord("E", timeout, false, true);
@@ -603,14 +629,14 @@ namespace TCP_communication
                 NewBaseType.tcpTimeout(stri);
             }
 
+            //強制終了の処理
             if(endPg == true || UserCheck == false) return;
             if(gVariables.getProgFlg() == false) return;
-            //ホスト名からIPアドレスを取得する時は、次のようにする
-            //string host = "localhost";
-            //System.Net.IPAddress ipAdd =
-            //    System.Net.Dns.GetHostEntry(hostは[0];
+
+            //自分(localHost)のIPアドレスを取得する。
             gVariables.setConAdress();
 
+            //メーセージの保存場所
             Task<string> sendMsg;
             string sendWord = "";
             string sendText = "";
@@ -619,11 +645,12 @@ namespace TCP_communication
             while(true)
             {
                 //System.Text.Encoding enc = System.Text.Encoding.UTF8;
-
+                //コマンド受付
                 Console.Write("> ");
                 string iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
                      true, inpWordFlg);
 
+                //とりあえず\nで終了させる。
                 sendWord = iniWord;
                 if(!sendWord.EndsWith("\n"))
                 {
@@ -665,9 +692,6 @@ namespace TCP_communication
 
                     //USER名を追加
                     sendWord = gVariables.getUSER() + " " + sendWord;
-
-                    //文字列をByte型配列に変換
-                    //byte[] sendBytes = enc.GetBytes(sendWord + '\n');
 
                     //クライアントから送信
                     sendMsg = Client.StartClient(gVariables.getPortNo(), sendWord);
@@ -711,8 +735,7 @@ namespace TCP_communication
                         //NetworkStreamを取得
                         System.Net.Sockets.NetworkStream ns = client.GetStream();
 
-                        //読み取り、書き込みのタイムアウトを10秒にする
-                        //デフォルトはInfiniteで、タイムアウトしない
+                        //読み取り、書き込みのタイムアウトを設定タイムアウトにする
                         //(.NET Framework 2.0以上が必要)
                         ns.ReadTimeout = gVariables.getSendTimeOut();
                         ns.WriteTimeout = gVariables.getReceTimeOut();
@@ -747,19 +770,15 @@ namespace TCP_communication
                         string resMsg = enc.GetString(ms.GetBuffer(), 0, (int)ms.Length);
                         ms.Close();
 
-                        //末尾の\nを削除
-                        //resMsg = resMsg.TrimEnd('\n');
+                        //サーバにメッセージ表示
                         Console.WriteLine("$ " + resMsg);
-
                         Console.Write("$ ");
 
                        //クライアントに送信する文字列を作成
                         sendText = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
                              true, inpWordFlg);
                         
-                        //末尾の\nを削除
-                        //sendText = sendText.TrimEnd('\n');
-                        //sendMsg = sendText;
+                        //末尾に\nを追加
                         if(!sendText.EndsWith("\n"))
                         {
                             sendText += "\n";
@@ -794,7 +813,6 @@ namespace TCP_communication
                             }
 
                             //クライアントにデータを送信する
-
                             //USER名を追加
                             sendText = gVariables.getUSER() + " " + sendText;
 
@@ -814,18 +832,13 @@ namespace TCP_communication
                     //リスナを閉じる
                     listener.Stop();
                     Console.WriteLine("$ " + "Listenerを閉じました。");
-
                     Console.ReadLine();
-
-                    //return;
                 }
 
             }
 
-            //リスナを閉じる
-            //slistener.Stop();
-            Console.WriteLine("> " + "Tcp_comを閉じました。");
-
+            //プログラムを終わらす。
+            Console.WriteLine("> " + "Tcp_comを終了ました。");
             Console.ReadLine();
             return;
         }
