@@ -9,3 +9,5 @@ mail: gyabo4863@gmail.com
 （Androidのアプリ対策の為）
 オープンソースコードで開発します。
 2024/09/10リリース予定。
+端末１台に付き１ライセンス購入下さい。
+https://diskcobo77.theshop.jp/
