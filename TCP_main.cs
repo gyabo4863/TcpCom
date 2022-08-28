@@ -631,7 +631,7 @@ namespace TCP_communication
                 }
 
                 //何も文字が入力されていない処理
-                if (iniWord == "") inpWordFlg = false;
+                if (sendWord.StartsWith("\n")) inpWordFlg = false;
                 else inpWordFlg = true;
 
                 //ヘルプコマンドチェック
@@ -757,10 +757,6 @@ namespace TCP_communication
                         sendText = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
                              true, inpWordFlg);
                         
-                        //入力がない場合の処理
-                        if (sendText == "") inpWordFlg = false;
-                        else inpWordFlg = true;
-
                         //末尾の\nを削除
                         //sendText = sendText.TrimEnd('\n');
                         //sendMsg = sendText;
@@ -769,6 +765,9 @@ namespace TCP_communication
                             sendText += "\n";
                         }
 
+                        //入力がない場合の処理
+                        if (sendText.StartsWith("\n")) inpWordFlg = false;
+                        else inpWordFlg = true;
 
                         //ヘルプコマンドチェック
                         TcpHelp.inpHelpCheck(sendText);
@@ -808,7 +807,7 @@ namespace TCP_communication
                         }
 
                         //サーバ処理中断？
-                        if(gVariables.getServerFlg() == false) break;
+                        if(!gVariables.getServerFlg()) break;
 
                     }
 
