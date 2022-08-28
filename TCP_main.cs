@@ -166,18 +166,28 @@ namespace TCP_communication
     //key入力制御クラス
     class typkey{
         //key入力制御関数
-        public static string typKeyWord(string stopKey, int timeout, bool inWordFlg)
+        public static string typKeyWord(string stopKey, int timeout, bool inWordFlg, bool inpWordFlg)
         {
             bool okinput = false;
             string inpWord = "";
             var outChar = "-";
             int  tcont = timeout / 1000;
-            if(gVariables.getinpCount() == 0 )
+            if(gVariables.getinpCount() == 0 || inpWordFlg)
             {
                 //1秒毎に入力確認する。
                 for (var i = 0; i < tcont; i++)
                 {
-                    Console.Write(outChar);
+                    //最初に待ち時間と入力keyを表示
+                    if(i%120 == 0) {
+                        Console.Write("{0}秒待ち",tcont - i);
+                        Console.Write(" key=" + stopKey);
+                        if (gVariables.getServerFlg())
+                        {
+                            Console.Write("\n$ ");
+                        } else {
+                            Console.Write("\n> ");
+                        }
+                    }
                     //キー入力チェック。E又はＩが入力されたら待ち受け終了。
                     if(Console.KeyAvailable){
                         outChar = Console.ReadKey().Key.ToString();
@@ -541,7 +551,7 @@ namespace TCP_communication
                     //     gVariables.getPortNo());
 
                     Console.Write("サーバ立ち上げ待ち終了Type E");
-                    typkey.typKeyWord("E", timeout, false);
+                    typkey.typKeyWord("E", timeout, false, true);
                     {
                         //接続後の処理を記述            // サーバーへ接続開始
                         Console.WriteLine("サーバーと通信確立");
@@ -579,6 +589,7 @@ namespace TCP_communication
             bool endPg = false;
             bool inpUser = false;
             bool UserCheck = false;
+            bool inpWordFlg = true;
 
             //引数の取得設定
         	foreach(string stri in argv)
@@ -610,13 +621,18 @@ namespace TCP_communication
                 //System.Text.Encoding enc = System.Text.Encoding.UTF8;
 
                 Console.Write("> ");
-                string iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(), true);
+                string iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
+                     true, inpWordFlg);
 
                 sendWord = iniWord;
                 if(!sendWord.EndsWith("\n"))
                 {
                     sendWord += "\n";
                 }
+
+                //何も文字が入力されていない処理
+                if (iniWord == "") inpWordFlg = false;
+                else inpWordFlg = true;
 
                 //ヘルプコマンドチェック
                 TcpHelp.inpHelpCheck(sendWord);
@@ -738,7 +754,13 @@ namespace TCP_communication
                         Console.Write("$ ");
 
                        //クライアントに送信する文字列を作成
-                        sendText = typkey.typKeyWord("I", gVariables.getReceTimeOut(), true);
+                        sendText = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
+                             true, inpWordFlg);
+                        
+                        //入力がない場合の処理
+                        if (sendText == "") inpWordFlg = false;
+                        else inpWordFlg = true;
+
                         //末尾の\nを削除
                         //sendText = sendText.TrimEnd('\n');
                         //sendMsg = sendText;
