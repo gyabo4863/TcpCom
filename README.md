@@ -4,7 +4,7 @@ TCP/IP通信をイントラネット内で行うツールです。
 相談はメールで賜ります。
 mail: gyabo4863@gmail.com
       disk-cobo@happy.email.ne.jp
-今後、売れたらihone、Macにも対応したいです。
+今後、売れたら、iPad、ihoneにも対応したいです。
 ソースコードは１ファイルだです。
 （Androidのアプリ対策の為）
 オープンソースコードで開発します。
