@@ -198,7 +198,7 @@ namespace TcpComWindows
         }
 
         //key入力制御関数
-        public static string typKeyWord(string stopKey, int timeout, bool inWordFlg, bool inpWordFlg)
+        public static async Task<string> typKeyWord(string stopKey, int timeout, bool inWordFlg, bool inpWordFlg)
         {
             bool okinput = false;
             bool skipFlg = true;
@@ -236,7 +236,7 @@ namespace TcpComWindows
                     }
 
                     //1秒のディレイ
-                    Task.Delay(1000);
+                    await Task.Delay(1000);
                 }
 
             }
@@ -253,6 +253,53 @@ namespace TcpComWindows
             }
 
             return (inpWord);
+        }
+
+        //入力の処理
+        public static Task<string> keyInput(bool inpWordFlg = true)
+        {
+            string sendWord ="";
+            //System.Text.Encoding enc = System.Text.Encoding.UTF8;
+            //コマンド受付
+            Console.Write("> ");
+            Task<string> iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
+                true, inpWordFlg);
+
+            //とりあえず\nで終了させる。
+            sendWord = iniWord.ToString();
+            if (!sendWord.EndsWith("\n"))
+            {
+                sendWord += "\n";
+            }
+
+            //ヘルプコマンド？
+            TcpHelp.inpHelpCheck(sendWord);
+
+            //デバッグ情報ON？
+            if (sendWord.StartsWith(gVariables.getOnDeBagCom()))
+            {
+                gVariables.setOnDeBag();
+            }
+
+            //デバッグ情報OFF？
+            if (sendWord.StartsWith(gVariables.getOffDeBagCom()))
+            {
+                gVariables.setOffDeBag();
+            }
+
+            return(iniWord);
+        }
+    
+        //マルチ非対応の処理
+        public static async void keyDelay()
+        {
+            while(true)
+            {
+                //オンリーワンが偽になるまでループする
+                if (!gVariables.getOnlyOnFlg()) break;
+                //1秒のディレイ
+                await Task.Delay(1000);
+            }
         }
     }
 
@@ -293,6 +340,7 @@ namespace TcpComWindows
         private static int portNo = 2001;
         private static bool progFlg = true;
         private static bool serverFlg = false;
+        private static bool onlyonFlg = true;
         private static bool debagFlg = false;
 
         //本当はconstでよい値だがなんとなく編集可能にした。
@@ -473,6 +521,24 @@ namespace TcpComWindows
         public static string getClientStart()
         {
             return (StartClient);
+        }
+
+        /// <summary>
+        /// マルチ運用にする
+        /// </summary>
+        /// <param name="setMulti"></param>
+        public static void setMulti()
+        {
+            onlyonFlg = false;
+        }
+
+        /// <summary>
+        /// 単一実行中かどうかを取得
+        /// </summary>
+        /// <param name="getOnlyOnFlg"></param>
+        public static bool getOnlyOnFlg()
+        {
+            return(onlyonFlg);
         }
 
         /// <summary>
@@ -658,7 +724,7 @@ namespace TcpComWindows
 
                     if (gVariables.getDeBagFlg())
                         Console.Write("サーバ立ち上げ待ち終了Type E");
-                    typkey.typKeyWord("E", timeout, false, true);
+                    await typkey.typKeyWord("E", timeout, false, true);
                     {
                         //接続後の処理を記述            // サーバーへ接続開始
                         if (gVariables.getDeBagFlg())
@@ -676,6 +742,7 @@ namespace TcpComWindows
                             response = System.Text.Encoding.ASCII.GetString(buffer, 0, length);
                             if (gVariables.getDeBagFlg())
                                 Console.WriteLine("サーバーから[response]を受信");
+                            gVariables.setMulti();
                         }
                     }
 
@@ -730,34 +797,22 @@ namespace TcpComWindows
 
             //メーセージの保存場所
             Task<string> sendMsg;
-            string sendWord = "";
+            Task<string> sendWord;
             string sendText = "";
 
             //クライアント側の送信
             while (true)
             {
-                //System.Text.Encoding enc = System.Text.Encoding.UTF8;
-                //コマンド受付
-                Console.Write("> ");
-                string iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
-                     true, inpWordFlg);
-
-                //とりあえず\nで終了させる。
-                sendWord = iniWord;
-                if (!sendWord.EndsWith("\n"))
-                {
-                    sendWord += "\n";
-                }
+                //クライアント文字入力処理
+                Task<string> inpWord = typkey.keyInput();
+                sendText = inpWord.ToString();
 
                 //何も文字が入力されていない処理
-                if (sendWord.StartsWith("\n")) inpWordFlg = false;
+                if (sendText.StartsWith("\n")) inpWordFlg = false;
                 else  inpWordFlg = true;
 
-                //ヘルプコマンド？
-                TcpHelp.inpHelpCheck(sendWord);
-
                 //終了コマンド？
-                if (sendWord.StartsWith(gVariables.getPgEnd()))
+                if (sendText.StartsWith(gVariables.getPgEnd()))
                 {
                     if (gVariables.getDeBagFlg())
                         Console.WriteLine("> " + "---TCP 通信終了---\n");
@@ -768,53 +823,42 @@ namespace TcpComWindows
                     break;
                 }
 
-                //デバッグ情報ON？
-                if (sendWord.StartsWith(gVariables.getOnDeBagCom()))
-                {
-                    gVariables.setOnDeBag();
-                }
-
-                //デバッグ情報OFF？
-                if (sendWord.StartsWith(gVariables.getOffDeBagCom()))
-                {
-                    gVariables.setOffDeBag();
-                }
-
                 //クライアント接続開始？
-                if (sendWord.StartsWith(gVariables.getClientStart()))
+                if (sendText.StartsWith(gVariables.getClientStart()))
                 {
                     //最初の1回のみ有効
                     if ( joinCount == 0)
                     {
                         //クライアント接続開始する
                         inpWordFlg = true;
-                        sendWord = "==>接続\n";
+                        sendText = "==>接続\n";
                     }
                     joinCount++;
                 }
 
                 //サーバ開始か？
-                if (sendWord.StartsWith(gVariables.getServerStart()))
+                if (sendText.StartsWith(gVariables.getServerStart()))
                 {
                     //サーバ処理にする
                     sendText = gVariables.getServerStart();
                     gVariables.setServerFlg();
+                    gVariables.setMulti();
                     Console.WriteLine("> サーバに移行します。");
                     break;
                 }
                 else
                 {
                     //送信が制御モードの場合入力に戻す
-                    if (sendWord.StartsWith("#") || !inpWordFlg)
+                    if (sendText.StartsWith("#") || !inpWordFlg)
                     {
                         continue;
                     }
 
                     //USER名を追加
-                    sendWord = gVariables.getUSER() + " " + sendWord;
+                    sendText = gVariables.getUSER() + " " + sendText;
 
                     //クライアントから送信
-                    sendMsg = Client.StartClient(gVariables.getPortNo(), sendWord);
+                    sendMsg = Client.StartClient(gVariables.getPortNo(), sendText);
                     if (sendMsg.ToString().StartsWith(gVariables.getErrWord()))
                     {
                         if (gVariables.getDeBagFlg())
@@ -825,13 +869,19 @@ namespace TcpComWindows
 
                 }
 
+                //マルチ非対応の処理
+                if (gVariables.getOnlyOnFlg())
+                {
+                    typkey.keyDelay();
+                }
+
             }
 
             //サーバ側送信
             if (sendText.StartsWith(gVariables.getServerStart()))
             {
                 //送信データがエラーでない
-                if (!sendWord.ToString().StartsWith(gVariables.getErrWord()))
+                if (!sendText.ToString().StartsWith(gVariables.getErrWord()))
                 {
 
                     //TcpListenerオブジェクトを作成する
@@ -898,8 +948,8 @@ namespace TcpComWindows
                         Console.Write("$ ");
 
                         //クライアントに送信する文字列を作成
-                        sendText = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
-                             true, inpWordFlg);
+                        sendWord = typkey.keyInput();
+                        sendText = sendWord.ToString();
 
                         //末尾に\nを追加
                         if (!sendText.EndsWith("\n"))
@@ -910,9 +960,6 @@ namespace TcpComWindows
                         //入力がない場合の処理
                         if (sendText.StartsWith("\n")) inpWordFlg = false;
                         else inpWordFlg = true;
-
-                        //ヘルプコマンド？
-                        TcpHelp.inpHelpCheck(sendText);
 
                         //終了コマンド？
                         if (sendText.StartsWith(gVariables.getPgEnd()))
@@ -928,22 +975,8 @@ namespace TcpComWindows
                             break;
                         }
 
-                        //デバッグ情報ON？
-                        if (sendWord.StartsWith(gVariables.getOnDeBagCom()))
-                        {
-                            gVariables.setOnDeBag();
-                            continue;
-                        }
-
-                        //デバッグ情報OFF？
-                        if (sendWord.StartsWith(gVariables.getOffDeBagCom()))
-                        {
-                            gVariables.setOffDeBag();
-                            continue;
-                        }
-
                         //クライアント接続開始？
-                        if (sendWord.StartsWith(gVariables.getClientStart()))
+                        if (sendText.StartsWith(gVariables.getClientStart()))
                         {
                             //クライアント接続しない
                             Console.WriteLine("$ クライアントに移行できません。");
@@ -951,7 +984,7 @@ namespace TcpComWindows
                         }
 
                         //サーバ開始か？
-                        if (sendWord.StartsWith(gVariables.getServerStart()))
+                        if (sendText.StartsWith(gVariables.getServerStart()))
                         {
                             //サーバ状態の為処理なし
                             Console.WriteLine("$ サーバ状態です。");
