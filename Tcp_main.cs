@@ -127,6 +127,9 @@ namespace TcpComWindows
             Console.WriteLine("　　自分の名前を設定する。");
             Console.WriteLine("　　２バイトコード使用も可。コード体系はUTF-8使用。");
             Console.WriteLine("　　この引数は必須項目です。無いと終了します。");
+            Console.WriteLine("/DEBAG:ON");
+            Console.WriteLine("　　デバグを開始状態出始める。");
+            Console.WriteLine("　　デバグ停止状態がデフォルト。");
             Console.WriteLine("Input anything Key/n");
             Console.ReadLine();
         }
@@ -153,11 +156,6 @@ namespace TcpComWindows
             Console.WriteLine("#DEBAG=OFF");
             Console.WriteLine("　　デバッグ情報非表示。");
             Console.WriteLine("　　通常はこのモードになっています。");
-            Console.WriteLine("E");
-            Console.WriteLine("　　サーバ接続待ち終了key。");
-            Console.WriteLine("I");
-            Console.WriteLine("　　入力許可モードに変更するkey。");
-            Console.WriteLine("　　受信timeoutまで入力可。");
             Console.WriteLine("#END");
             Console.WriteLine("　　通信プログラムを終了する。");
             Console.WriteLine("Input anything Key/n");
@@ -182,97 +180,10 @@ namespace TcpComWindows
     //key入力制御クラス
     class typkey
     {
-        //key入力時の表示制御
-        public static void dispKey(int tcont, int i, string stopKey)
-        {
-            Console.Write("{0}秒待ち", tcont - i);
-            Console.Write(" key=" + stopKey);
-
-            if (gVariables.getServerFlg())
-            {
-                Console.Write("\n$ ");
-            }
-            else
-            {
-                Console.Write("\n> ");
-            }
-        }
-
-        //key入力制御関数
-        public static async Task<string> typKeyWord(string stopKey, int timeout, bool inWordFlg, bool inpWordFlg)
-        {
-            bool okinput = false;
-            bool skipFlg = true;
-            string inpWord = "";
-            var outChar = "-";
-            int tcont = timeout / 1000;
-
-            //入力初回と表示許可フラグがtrueの場合
-            if (gVariables.getinpCount() == 0 && inpWordFlg)
-            {
-                //1秒毎に入力確認する。
-                for (var i = 0; i < tcont; i++)
-                {
-                    //最初と２分毎に待ち時間と入力keyを表示
-                    if (i % 120 == 0 && skipFlg)
-                    {
-                        if (i < 120) skipFlg = false;
-                        dispKey(tcont, i, stopKey);
-                    }
-                    else
-                    {
-                        if (i >= 120) skipFlg = true;
-                        //dispKey(tcont, i, stopKey);
-                    }
-
-                    //キー入力チェック。E又はＩが入力されたら待ち受け終了。
-                    if (Console.KeyAvailable)
-                    {
-                        outChar = Console.ReadKey().Key.ToString();
-                        if (outChar.ToUpper().StartsWith(stopKey))
-                        {
-                            okinput = true;
-                            break;
-                        }
-                    }
-
-                    //1秒のディレイ
-                    await Task.Delay(1000);
-                }
-
-            }
-            else
-            {
-                //とりあえず、入力許可にする。
-                okinput = true;
-            }
-
-            //timeout前に入力keyを受けたら入力状態にする。
-            if (inWordFlg && okinput)
-            {
-                inpWord = Console.ReadLine();
-            }
-
-            return (inpWord);
-        }
-
         //入力の処理
-        public static Task<string> keyInput()
+        public static void keyCommon(string sendWord)
         {
-            string sendWord ="";
             //System.Text.Encoding enc = System.Text.Encoding.UTF8;
-            //コマンド受付
-            Console.Write("> ");
-            Task<string> iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
-                true, gVariables.getKeyInpFlg());
-
-            //とりあえず\nで終了させる。
-            sendWord = iniWord.ToString();
-            if (!sendWord.EndsWith("\n"))
-            {
-                sendWord += "\n";
-            }
-
             //ヘルプコマンド？
             TcpHelp.inpHelpCheck(sendWord);
 
@@ -288,19 +199,7 @@ namespace TcpComWindows
                 gVariables.setOffDeBag();
             }
 
-            return(iniWord);
-        }
-    
-        //マルチ非対応の処理
-        public static async void keyDelay()
-        {
-            while(true)
-            {
-                //オンリーワンが偽になるまでループする
-                if (!gVariables.getOnlyOnFlg()) break;
-                //1秒のディレイ
-                await Task.Delay(1000);
-            }
+            return;
         }
     }
 
@@ -330,8 +229,6 @@ namespace TcpComWindows
         }
 
         //グローバル変数の保存場所
-        private static System.Net.IPAddress strAdress =
-            System.Net.IPAddress.Parse("192.168.1.1");
         private static System.Net.IPAddress ipAdd =
             System.Net.IPAddress.Parse("192.168.1.1");
         private static int inpCount = 0;
@@ -342,7 +239,6 @@ namespace TcpComWindows
         private static bool progFlg = true;
         private static bool serverFlg = false;
         private static bool onlyonFlg = true;
-        private static bool keyinpFlg = true;
         private static bool debagFlg = false;
 
         //本当はconstでよい値だがなんとなく編集可能にした。
@@ -352,24 +248,6 @@ namespace TcpComWindows
         private static string DeBagOff = "#DEBAG=OFF";
         private static string ExitPg = "#END";
         private static string errWord = "#Err";
-
-        /// <summary>
-        /// Ｉｐアドレスを設定する
-        /// </summary>
-        /// <param name="strAdress"></param>
-        public static void setLisAdress(string iniAdress)
-        {
-            strAdress = System.Net.IPAddress.Parse(iniAdress);
-        }
-
-        /// <summary>
-        /// Ｉｐアドレスを取得する
-        /// </summary>
-        /// <param name="getAdress"></param>
-        public static System.Net.IPAddress getLisAdress()
-        {
-            return (strAdress);
-        }
 
         /// <summary>
         /// ポート設定フラグ設定する<現在未使用>
@@ -396,15 +274,6 @@ namespace TcpComWindows
         public static int getPortNo()
         {
             return (portNo);
-        }
-
-        /// <summary>
-        /// 入力回数を取得する
-        /// </summary>
-        /// <param name="getinpCount"></param>
-        public static int getinpCount()
-        {
-            return (inpCount);
         }
 
         /// <summary>
@@ -544,33 +413,6 @@ namespace TcpComWindows
         }
 
         /// <summary>
-        /// Key入力時タイマーをONにする
-        /// </summary>
-        /// <param name="setOnKeyFlg"></param>
-        public static void setOnKeyFlg()
-        {
-            keyinpFlg = true;
-        }
-
-        /// <summary>
-        /// Key入力時タイマーをOFFにする
-        /// </summary>
-        /// <param name="setOffKeyFlg"></param>
-        public static void setOffKeyFlg()
-        {
-            keyinpFlg = false;
-        }
-        
-        /// <summary>
-        /// Key入力時タイマー状態を取得する
-        /// </summary>
-        /// <param name="getKeyInpFlg"></param>
-        public static bool getKeyInpFlg()
-        {
-            return(keyinpFlg);
-        }
-        
-        /// <summary>
         /// DeBagをONにする
         /// </summary>
         /// <param name="setOnDeBag"></param>
@@ -674,21 +516,6 @@ namespace TcpComWindows
 
         }
 
-        //”/IP:”の解析
-        public static bool ListenerIpAdrress(string param)
-        {
-            bool rc = false;
-
-            //IPアドレス？
-            if (param.StartsWith("/IP:"))
-            {
-                gVariables.setLisAdress(getValue(param));
-                rc = true;
-            }
-
-            return (rc);
-        }
-
         //”/H”の解析
         public static bool tcpPGHelp(string param)
         {
@@ -727,6 +554,15 @@ namespace TcpComWindows
 
             return (rc);
         }
+   
+        public static void debag(string param)
+        {
+            //デバッグをON状態で始める
+            if (param.StartsWith("/DEBAG:ON"))
+            {
+                gVariables.setOnDeBag();
+            }
+        }
     }
 
     //クライアントクラス
@@ -749,11 +585,9 @@ namespace TcpComWindows
                     tcpclient.ReceiveTimeout = gVariables.getReceTimeOut();
 
                     //Listenerタイムアウトの時間を設定
-                    var timeout = gVariables.getListenerTimeOut();
-
-                    if (gVariables.getDeBagFlg())
-                        Console.Write("サーバ立ち上げ待ち終了Type E");
-                    await typkey.typKeyWord("E", timeout, false, true);
+                    //var timeout = gVariables.getListenerTimeOut();
+                    Console.WriteLine("> サーバーへ接続します。Input anyKey");
+                    Console.ReadLine();
                     {
                         //接続後の処理を記述            // サーバーへ接続開始
                         if (gVariables.getDeBagFlg())
@@ -810,10 +644,10 @@ namespace TcpComWindows
                 NewBaseType.init(stri);
                 endPg = NewBaseType.tcpPGHelp(stri);
                 if (endPg == true) break;
-                NewBaseType.ListenerIpAdrress(stri);
                 inpUser = NewBaseType.user(stri);
                 if (inpUser == true) UserCheck = true;
                 NewBaseType.tcpTimeout(stri);
+                NewBaseType.debag(stri);
             }
 
             //強制終了の処理
@@ -825,19 +659,25 @@ namespace TcpComWindows
 
             //メーセージの保存場所
             Task<string> sendMsg;
-            Task<string> sendWord;
+            string sendWord = "";
             string sendText = "";
 
             //クライアント側の送信
             while (true)
             {
                 //クライアント文字入力処理
-                Task<string> inpWord = typkey.keyInput();
-                sendText = inpWord.ToString();
+                Console.WriteLine("> ");
+                sendText = Console.ReadLine();
                 if (!sendText.EndsWith("\n"))
                 {
                     sendText += "\n";
                 }
+
+                //入力が共通コマンドの処理
+                typkey.keyCommon(sendWord);
+
+                if (gVariables.getDeBagFlg())
+                    Console.WriteLine(">  [[" + sendText);
 
                 //終了コマンド？
                 if (sendText.StartsWith(gVariables.getPgEnd()))
@@ -878,15 +718,6 @@ namespace TcpComWindows
                     //送信が制御モードの場合入力に戻す
                     if (sendText.StartsWith("#") || sendText.StartsWith("\n"))
                     {
-                        //マルチ非対応の処理
-                        if (gVariables.getOnlyOnFlg())
-                        {
-                            gVariables.setOffKeyFlg();
-                        }
-                        else
-                        {
-                            gVariables.setOnKeyFlg();
-                        }       
                         continue;
                     }
 
@@ -902,17 +733,6 @@ namespace TcpComWindows
                         gVariables.setProgFlg(false);
                         break;
                     }
-
-                }
-
-                //マルチ非対応の処理
-                if (gVariables.getOnlyOnFlg())
-                {
-                    gVariables.setOffKeyFlg();
-                }
-                else
-                {
-                    gVariables.setOnKeyFlg();
                 }
             }
 
@@ -987,14 +807,16 @@ namespace TcpComWindows
                         Console.Write("$ ");
 
                         //クライアントに送信する文字列を作成
-                        sendWord = typkey.keyInput();
-                        sendText = sendWord.ToString();
+                        sendText = Console.ReadLine();
 
                         //末尾に\nを追加
                         if (!sendText.EndsWith("\n"))
                         {
                             sendText += "\n";
                         }
+
+                        //入力が共通コマンドの処理
+                        typkey.keyCommon(sendText);
 
                         //終了コマンド？
                         if (sendText.StartsWith(gVariables.getPgEnd()))
