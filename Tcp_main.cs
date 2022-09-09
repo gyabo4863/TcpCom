@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace TcpComWindows
 {
@@ -256,14 +257,14 @@ namespace TcpComWindows
         }
 
         //入力の処理
-        public static Task<string> keyInput(bool inpWordFlg = true)
+        public static Task<string> keyInput()
         {
             string sendWord ="";
             //System.Text.Encoding enc = System.Text.Encoding.UTF8;
             //コマンド受付
             Console.Write("> ");
             Task<string> iniWord = typkey.typKeyWord("I", gVariables.getReceTimeOut(),
-                true, inpWordFlg);
+                true, gVariables.getKeyInpFlg());
 
             //とりあえず\nで終了させる。
             sendWord = iniWord.ToString();
@@ -341,6 +342,7 @@ namespace TcpComWindows
         private static bool progFlg = true;
         private static bool serverFlg = false;
         private static bool onlyonFlg = true;
+        private static bool keyinpFlg = true;
         private static bool debagFlg = false;
 
         //本当はconstでよい値だがなんとなく編集可能にした。
@@ -542,6 +544,33 @@ namespace TcpComWindows
         }
 
         /// <summary>
+        /// Key入力時タイマーをONにする
+        /// </summary>
+        /// <param name="setOnKeyFlg"></param>
+        public static void setOnKeyFlg()
+        {
+            keyinpFlg = true;
+        }
+
+        /// <summary>
+        /// Key入力時タイマーをOFFにする
+        /// </summary>
+        /// <param name="setOffKeyFlg"></param>
+        public static void setOffKeyFlg()
+        {
+            keyinpFlg = false;
+        }
+        
+        /// <summary>
+        /// Key入力時タイマー状態を取得する
+        /// </summary>
+        /// <param name="getKeyInpFlg"></param>
+        public static bool getKeyInpFlg()
+        {
+            return(keyinpFlg);
+        }
+        
+        /// <summary>
         /// DeBagをONにする
         /// </summary>
         /// <param name="setOnDeBag"></param>
@@ -551,7 +580,7 @@ namespace TcpComWindows
         }
 
         /// <summary>
-        /// DeBagをONにする
+        /// DeBagをOFFにする
         /// </summary>
         /// <param name="seOffDeBag"></param>
         public static void setOffDeBag()
@@ -851,6 +880,15 @@ namespace TcpComWindows
                     //送信が制御モードの場合入力に戻す
                     if (sendText.StartsWith("#") || !inpWordFlg)
                     {
+                        //マルチ非対応の処理
+                        if (gVariables.getOnlyOnFlg())
+                        {
+                            gVariables.setOffKeyFlg();
+                        }
+                        else
+                        {
+                            gVariables.setOnKeyFlg();
+                        }       
                         continue;
                     }
 
@@ -872,9 +910,12 @@ namespace TcpComWindows
                 //マルチ非対応の処理
                 if (gVariables.getOnlyOnFlg())
                 {
-                    typkey.keyDelay();
+                    gVariables.setOffKeyFlg();
                 }
-
+                else
+                {
+                    gVariables.setOnKeyFlg();
+                }
             }
 
             //サーバ側送信
