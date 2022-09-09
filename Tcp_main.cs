@@ -796,7 +796,6 @@ namespace TcpComWindows
             bool endPg = false;
             bool inpUser = false;
             bool UserCheck = false;
-            bool inpWordFlg = true;
             int joinCount = 0;
 
             // 標準入力のエンコーディングにUTF-8を用いる
@@ -835,10 +834,10 @@ namespace TcpComWindows
                 //クライアント文字入力処理
                 Task<string> inpWord = typkey.keyInput();
                 sendText = inpWord.ToString();
-
-                //何も文字が入力されていない処理
-                if (sendText.StartsWith("\n")) inpWordFlg = false;
-                else  inpWordFlg = true;
+                if (!sendText.EndsWith("\n"))
+                {
+                    sendText += "\n";
+                }
 
                 //終了コマンド？
                 if (sendText.StartsWith(gVariables.getPgEnd()))
@@ -859,7 +858,6 @@ namespace TcpComWindows
                     if ( joinCount == 0)
                     {
                         //クライアント接続開始する
-                        inpWordFlg = true;
                         sendText = "==>接続\n";
                     }
                     joinCount++;
@@ -878,7 +876,7 @@ namespace TcpComWindows
                 else
                 {
                     //送信が制御モードの場合入力に戻す
-                    if (sendText.StartsWith("#") || !inpWordFlg)
+                    if (sendText.StartsWith("#") || sendText.StartsWith("\n"))
                     {
                         //マルチ非対応の処理
                         if (gVariables.getOnlyOnFlg())
@@ -998,10 +996,6 @@ namespace TcpComWindows
                             sendText += "\n";
                         }
 
-                        //入力がない場合の処理
-                        if (sendText.StartsWith("\n")) inpWordFlg = false;
-                        else inpWordFlg = true;
-
                         //終了コマンド？
                         if (sendText.StartsWith(gVariables.getPgEnd()))
                         {
@@ -1036,7 +1030,7 @@ namespace TcpComWindows
                         if (!disconnected)
                         {
                             //送信が制御モードの場合入力に戻す
-                            if (sendText.StartsWith("#") || !inpWordFlg)
+                            if (sendText.StartsWith("#") || sendText.EndsWith("\n"))
                             {
                                 continue;
                             }
